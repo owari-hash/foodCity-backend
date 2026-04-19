@@ -47,6 +47,26 @@ export function initSocket(server: HttpServer, corsOrigins: string[]): Server {
         }
       },
     );
+
+    socket.on(
+      "leave",
+      async (
+        payload: { conversationId?: string },
+        ack?: (err: Error | null) => void,
+      ) => {
+        try {
+          const id = payload?.conversationId?.trim();
+          if (!id) {
+            ack?.(new Error("INVALID"));
+            return;
+          }
+          await socket.leave(roomForConversation(id));
+          ack?.(null);
+        } catch (e) {
+          ack?.(e instanceof Error ? e : new Error("LEAVE_FAILED"));
+        }
+      },
+    );
   });
 
   return io;

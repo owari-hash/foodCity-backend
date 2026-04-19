@@ -6,7 +6,7 @@ import { emitNewMessage } from "../socket.js";
 import { serializeLean } from "../util/serialize.js";
 
 function emitMsg(convId: string, msg: Record<string, unknown>) {
-  emitNewMessage(convId, { message: msg });
+  emitNewMessage(convId, msg);
 }
 
 const WELCOME_BOT =

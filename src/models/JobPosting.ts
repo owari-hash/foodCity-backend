@@ -8,6 +8,8 @@ const JobPostingSchema = new Schema(
     description: { type: String, required: true },
     salary: { type: String },
     contactEmail: { type: String },
+    /** Public URL or `/upload/…` from admin upload */
+    imageUrl: { type: String },
     active: { type: Boolean, default: true },
   },
   { timestamps: true },
