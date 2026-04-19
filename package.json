@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "config": {
+    "port": "4000"
+  },
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "cross-env PORT=4000 tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src"
@@ -24,6 +27,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
+    "cross-env": "^7.0.3",
     "eslint": "^10.2.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
