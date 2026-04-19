@@ -8,10 +8,18 @@ export function getBotReply(userText: string): string {
     lower.includes("оффис") ||
     lower.includes("боломжит") ||
     lower.includes("захиалга") ||
-    lower.includes("хоол")
+    lower.includes("хоол") ||
+    lower.includes("заавар")
   ) {
     reply =
       "Захиалга өгөх бол вэб дээрх «Захиалга» хэсгээс бөглөнө үү. Оффис болон үйлчилгээний талаар дэлгэрэнгүй мэдээллийг «Борлуулалтын зар»-аас үзнэ үү.";
+  } else if (
+    lower.includes("бидний тухай") ||
+    lower.includes("танилцуулга") ||
+    lower.includes("компани")
+  ) {
+    reply =
+      "«Бидний тухай» хэсгээс FoodCity-ийн туршлага, гүйцэтгэсэн төслүүд, багийн мэдээлэлтэй танилцана уу. Тодорхой асуулт байвал энд шууд бичээрэй.";
   } else if (
     lower.includes("үнэ") ||
     lower.includes("price") ||

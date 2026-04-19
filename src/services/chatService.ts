@@ -49,10 +49,6 @@ export async function postUserMessage(
   const userLean = serializeLean(userMsg.toObject() as Record<string, unknown>);
   emitMsg(conversationId, userLean!);
 
-  if (conv.humanMode) {
-    return { userMsg: userLean, botMsg: null };
-  }
-
   const botText = getBotReply(text);
   const botMsg = await Message.create({
     conversationId: new mongoose.Types.ObjectId(conversationId),
