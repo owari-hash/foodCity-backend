@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
 import { Conversation } from "../models/Conversation.js";
 import { Message } from "../models/Message.js";
-import { DEFAULT_REPLY, getBotReply } from "./chatbot.js";
 import {
-  getConfiguredBotReply,
   getWelcomeMessageFromSite,
+  resolveAutomatedBotReply,
 } from "./chatbotFromSite.js";
 import { emitNewMessage } from "../socket.js";
 import { serializeLean } from "../util/serialize.js";
@@ -12,9 +11,6 @@ import { serializeLean } from "../util/serialize.js";
 function emitMsg(convId: string, msg: Record<string, unknown>) {
   emitNewMessage(convId, msg);
 }
-
-const WELCOME_BOT =
-  "Сайн байна уу! FoodCity-т тавтай морилно уу. Захиалга, борлуулалтын зар, ажлын зарын талаар асууж болно. Оператортой ярихыг хүсвэл «Ажилтан авах»-ыг админд идэвхжүүлнэ үү.";
 
 export async function createOrGetConversation(
   guestId: string,
@@ -24,11 +20,13 @@ export async function createOrGetConversation(
   if (!conv) {
     conv = await Conversation.create({ guestId, displayName });
     const welcomeFromSite = (await getWelcomeMessageFromSite())?.trim();
-    await Message.create({
-      conversationId: conv._id,
-      role: "bot",
-      text: welcomeFromSite || WELCOME_BOT,
-    });
+    if (welcomeFromSite) {
+      await Message.create({
+        conversationId: conv._id,
+        role: "bot",
+        text: welcomeFromSite,
+      });
+    }
   } else if (displayName && displayName !== conv.displayName) {
     conv.displayName = displayName;
     await conv.save();
@@ -54,15 +52,14 @@ export async function postUserMessage(
   const userLean = serializeLean(userMsg.toObject() as Record<string, unknown>);
   emitMsg(conversationId, userLean!);
 
-  const configuredTrim = (await getConfiguredBotReply(text))?.trim() ?? "";
-  const rulesTrim = getBotReply(text).trim();
-  let botText =
-    configuredTrim.length > 0
-      ? configuredTrim
-      : rulesTrim.length > 0
-        ? rulesTrim
-        : DEFAULT_REPLY;
-  botText = botText.trim() || DEFAULT_REPLY;
+  const botText = (await resolveAutomatedBotReply(text))?.trim() ?? "";
+  if (!botText) {
+    return {
+      userMsg: userLean,
+      botMsg: null,
+      humanMode: Boolean(conv.humanMode),
+    };
+  }
 
   const botMsgDoc = await Message.create({
     conversationId: new mongoose.Types.ObjectId(conversationId),

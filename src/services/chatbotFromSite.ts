@@ -11,6 +11,8 @@ type ChatbotBundle = {
   roots: ChoiceNode[];
   welcomeMessage: string | null;
   startButtonLabel: string | null;
+  /** When user text does not match any chip label — from admin `sections.fallbackBotReply`. */
+  fallbackBotReply: string | null;
 };
 
 const CACHE_MS = 45_000;
@@ -51,7 +53,12 @@ async function loadBundle(): Promise<ChatbotBundle> {
   const now = Date.now();
   if (bundleCache && bundleCache.exp > now) return bundleCache.data;
 
-  const empty: ChatbotBundle = { roots: [], welcomeMessage: null, startButtonLabel: null };
+  const empty: ChatbotBundle = {
+    roots: [],
+    welcomeMessage: null,
+    startButtonLabel: null,
+    fallbackBotReply: null,
+  };
   try {
     const doc = await SitePage.findOne({ pageId: "chatbot" }).lean();
     const sections = (doc?.sections as Record<string, unknown>) ?? {};
@@ -65,6 +72,7 @@ async function loadBundle(): Promise<ChatbotBundle> {
       roots,
       welcomeMessage: String(sections.welcomeMessage ?? "").trim() || null,
       startButtonLabel: String(sections.startButtonLabel ?? "").trim() || null,
+      fallbackBotReply: String(sections.fallbackBotReply ?? "").trim() || null,
     };
     bundleCache = { exp: now + CACHE_MS, data };
     return data;
@@ -83,7 +91,7 @@ export async function getWelcomeMessageFromSite(): Promise<string | null> {
  * When the user message matches:
  * - **startButtonLabel** → returns **welcomeMessage** (if set), for “Чат эхлүүлэх”-style flows; or
  * - a choice **label** anywhere in the admin tree → that node’s **answer**;
- * otherwise null (caller uses rule-based `getBotReply`).
+ * otherwise null.
  */
 export async function getConfiguredBotReply(userText: string): Promise<string | null> {
   const b = await loadBundle();
@@ -100,6 +108,21 @@ export async function getConfiguredBotReply(userText: string): Promise<string | 
 
   if (b.roots.length === 0) return null;
   return findAnswerByNormalizedLabel(b.roots, n);
+}
+
+/**
+ * Full automated reply: tree/start match, else `fallbackBotReply`, else `welcomeMessage`.
+ * Returns null if nothing is configured in CMS (caller may skip bot message).
+ */
+export async function resolveAutomatedBotReply(userText: string): Promise<string | null> {
+  const fromTree = (await getConfiguredBotReply(userText))?.trim();
+  if (fromTree) return fromTree;
+  const b = await loadBundle();
+  const fb = b.fallbackBotReply?.trim();
+  if (fb) return fb;
+  const w = b.welcomeMessage?.trim();
+  if (w) return w;
+  return null;
 }
 
 export function invalidateChatbotSiteCache(): void {
