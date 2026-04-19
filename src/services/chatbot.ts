@@ -1,6 +1,9 @@
 /**
- * Rule-based bot replies (MN). Used for every user message after persistence;
- * `humanMode` on the conversation does not disable this (hybrid: bot + operator).
+ * Fallback rule-based bot replies (MN). `chatService` resolves the reply as:
+ * 1) Admin «Чатбот» tree: user message normalized equals a choice **label** → that
+ *    node’s **answer** (`chatbotFromSite.getConfiguredBotReply`).
+ * 2) Else these keyword rules (`getBotReply`).
+ * When `humanMode` is true, the API skips bot replies entirely.
  */
 
 const DEFAULT_REPLY =

@@ -11,6 +11,7 @@ import { SitePage } from "../models/SitePage.js";
 import { AdminUser } from "../models/AdminUser.js";
 import { postAgentMessage } from "../services/chatService.js";
 import { serializeDocument, serializeLean } from "../util/serialize.js";
+import { invalidateChatbotSiteCache } from "../services/chatbotFromSite.js";
 import { adminLoginHandler, requireAdminAuth } from "../middleware/adminAuth.js";
 import { requirePermission } from "../middleware/adminRbac.js";
 import { ADMIN_PERMISSIONS } from "../constants/adminPermissions.js";
@@ -380,6 +381,9 @@ adminRouter.put("/site-pages/:pageId", requirePermission("site-content"), async 
       },
       { new: true, upsert: true, runValidators: true },
     );
+    if (pageId === "chatbot") {
+      invalidateChatbotSiteCache();
+    }
     res.json({ data: serializeDocument(doc!) });
   } catch (e) {
     next(e);

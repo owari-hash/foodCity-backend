@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import { Conversation } from "../models/Conversation.js";
 import { Message } from "../models/Message.js";
 import { getBotReply } from "./chatbot.js";
+import {
+  getConfiguredBotReply,
+  getWelcomeMessageFromSite,
+} from "./chatbotFromSite.js";
 import { emitNewMessage } from "../socket.js";
 import { serializeLean } from "../util/serialize.js";
 
@@ -19,10 +23,11 @@ export async function createOrGetConversation(
   let conv = await Conversation.findOne({ guestId });
   if (!conv) {
     conv = await Conversation.create({ guestId, displayName });
+    const welcomeFromSite = (await getWelcomeMessageFromSite())?.trim();
     await Message.create({
       conversationId: conv._id,
       role: "bot",
-      text: WELCOME_BOT,
+      text: welcomeFromSite || WELCOME_BOT,
     });
   } else if (displayName && displayName !== conv.displayName) {
     conv.displayName = displayName;
@@ -49,7 +54,12 @@ export async function postUserMessage(
   const userLean = serializeLean(userMsg.toObject() as Record<string, unknown>);
   emitMsg(conversationId, userLean!);
 
-  const botText = getBotReply(text);
+  if (conv.humanMode) {
+    return { userMsg: userLean, botMsg: null, humanMode: true };
+  }
+
+  const configured = await getConfiguredBotReply(text);
+  const botText = configured ?? getBotReply(text);
   const botMsg = await Message.create({
     conversationId: new mongoose.Types.ObjectId(conversationId),
     role: "bot",
@@ -58,7 +68,7 @@ export async function postUserMessage(
   const botLean = serializeLean(botMsg.toObject() as Record<string, unknown>);
   emitMsg(conversationId, botLean!);
 
-  return { userMsg: userLean, botMsg: botLean };
+  return { userMsg: userLean, botMsg: botLean, humanMode: false };
 }
 
 export async function postAgentMessage(
