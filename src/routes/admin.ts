@@ -20,17 +20,28 @@ adminRouter.get("/stats", async (_req, res, next) => {
   try {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    const [ordersToday, revenueAgg, pendingOrders, activeAds, activeJobs] =
-      await Promise.all([
-        Order.countDocuments({ createdAt: { $gte: start } }),
-        Order.aggregate<{ total: number }>([
-          { $match: { createdAt: { $gte: start } } },
-          { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-        ]),
-        Order.countDocuments({ status: "pending" }),
-        SalesAd.countDocuments({ active: true }),
-        JobPosting.countDocuments({ active: true }),
-      ]);
+    const [
+      ordersToday,
+      revenueAgg,
+      pendingOrders,
+      activeAds,
+      activeJobs,
+      totalOrders,
+      openConversations,
+      humanModeChats,
+    ] = await Promise.all([
+      Order.countDocuments({ createdAt: { $gte: start } }),
+      Order.aggregate<{ total: number }>([
+        { $match: { createdAt: { $gte: start } } },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+      ]),
+      Order.countDocuments({ status: "pending" }),
+      SalesAd.countDocuments({ active: true }),
+      JobPosting.countDocuments({ active: true }),
+      Order.countDocuments(),
+      Conversation.countDocuments({ status: "open" }),
+      Conversation.countDocuments({ humanMode: true, status: "open" }),
+    ]);
     const revenueToday = revenueAgg[0]?.total ?? 0;
     res.json({
       data: {
@@ -39,6 +50,9 @@ adminRouter.get("/stats", async (_req, res, next) => {
         pendingOrders,
         activeSalesAds: activeAds,
         activeJobs: activeJobs,
+        totalOrders,
+        openConversations,
+        humanModeChats,
       },
     });
   } catch (e) {
