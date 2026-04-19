@@ -53,6 +53,30 @@ app.use("/api/v1/chat", chatPublicRouter);
 app.use("/api/v1/site-pages", sitePagesPublicRouter);
 app.use("/api/v1/admin", adminRouter);
 
+/**
+ * Some reverse proxies forward the browser path `/api/v1/...` to the Node app as `/v1/...`
+ * (strip `/api`). Duplicate mounts keep the same handlers reachable in both cases.
+ */
+app.use("/v1", healthRouter);
+app.use("/v1/orders", ordersPublicRouter);
+app.use("/v1/sales-ads", salesAdsPublicRouter);
+app.use("/v1/jobs", jobsPublicRouter);
+app.use("/v1/chat", chatPublicRouter);
+app.use("/v1/site-pages", sitePagesPublicRouter);
+app.use("/v1/admin", adminRouter);
+
+/**
+ * When the proxy strips the full `/api/v1/` prefix (`location /api/v1/ { proxy_pass …/; }`),
+ * the browser path `/api/v1/admin/site-pages/…` arrives as `/admin/site-pages/…`.
+ */
+app.use("/orders", ordersPublicRouter);
+app.use("/sales-ads", salesAdsPublicRouter);
+app.use("/jobs", jobsPublicRouter);
+app.use("/chat", chatPublicRouter);
+app.use("/site-pages", sitePagesPublicRouter);
+app.use("/admin", adminRouter);
+app.use("/", healthRouter);
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
