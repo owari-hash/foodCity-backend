@@ -18,18 +18,17 @@ import { initSocket } from "./socket.js";
 const app = express();
 const port = Number(process.env.PORT) || 4000;
 /** Allowed browser origins (REST + Socket.io). Override with CORS_ORIGIN in .env */
-const corsOrigin =
-  process.env.CORS_ORIGIN ??
-  [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "https://bukhbatllc.mn",
-    "https://www.bukhbatllc.mn",
-    "http://bukhbatllc.mn",
-    "http://www.bukhbatllc.mn",
-  ].join(",");
-const corsOrigins = corsOrigin.split(",").map((o) => o.trim());
+const PRODUCTION_ORIGINS = [
+  "https://bukhbatllc.mn",
+  "https://www.bukhbatllc.mn",
+  "http://bukhbatllc.mn",
+  "http://www.bukhbatllc.mn",
+];
+const envOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+const corsOrigins = [...new Set([...envOrigins, ...PRODUCTION_ORIGINS])];
 
 app.use(
   cors({
