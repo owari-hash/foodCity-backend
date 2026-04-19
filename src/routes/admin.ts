@@ -13,10 +13,12 @@ import { postAgentMessage } from "../services/chatService.js";
 import { serializeDocument, serializeLean } from "../util/serialize.js";
 import { adminLoginHandler, requireAdminAuth } from "../middleware/adminAuth.js";
 import { requirePermission } from "../middleware/adminRbac.js";
-import {
-  ADMIN_PERMISSIONS,
-  type AdminPermission,
-} from "../constants/adminPermissions.js";
+import { ADMIN_PERMISSIONS } from "../constants/adminPermissions.js";
+
+function paramString(v: string | string[] | undefined): string {
+  if (Array.isArray(v)) return v[0] ?? "";
+  return v ?? "";
+}
 
 export const adminRouter = Router();
 
@@ -111,7 +113,7 @@ adminRouter.get("/orders", requirePermission("orders"), async (req, res, next) =
 
 adminRouter.patch("/orders/:id", requirePermission("orders"), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = paramString(req.params.id);
     const { status, notes } = req.body as { status?: string; notes?: string };
     const order = await Order.findByIdAndUpdate(
       id,
@@ -158,7 +160,7 @@ adminRouter.patch("/sales-ads/:id", requirePermission("sales-ads"), async (req, 
   try {
     const a = req.admin!;
     const ad = await SalesAd.findByIdAndUpdate(
-      req.params.id,
+      paramString(req.params.id),
       {
         ...stripSalesAdBody(req.body as Record<string, unknown>),
         lastEditedByUsername: a.username,
@@ -178,7 +180,7 @@ adminRouter.patch("/sales-ads/:id", requirePermission("sales-ads"), async (req, 
 
 adminRouter.delete("/sales-ads/:id", requirePermission("sales-ads"), async (req, res, next) => {
   try {
-    const r = await SalesAd.findByIdAndDelete(req.params.id);
+    const r = await SalesAd.findByIdAndDelete(paramString(req.params.id));
     if (!r) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "SalesAd" } });
       return;
@@ -219,7 +221,7 @@ adminRouter.patch("/jobs/:id", requirePermission("jobs"), async (req, res, next)
   try {
     const a = req.admin!;
     const job = await JobPosting.findByIdAndUpdate(
-      req.params.id,
+      paramString(req.params.id),
       {
         ...stripJobBody(req.body as Record<string, unknown>),
         lastEditedByUsername: a.username,
@@ -239,7 +241,7 @@ adminRouter.patch("/jobs/:id", requirePermission("jobs"), async (req, res, next)
 
 adminRouter.delete("/jobs/:id", requirePermission("jobs"), async (req, res, next) => {
   try {
-    const r = await JobPosting.findByIdAndDelete(req.params.id);
+    const r = await JobPosting.findByIdAndDelete(paramString(req.params.id));
     if (!r) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Job" } });
       return;
@@ -264,7 +266,7 @@ adminRouter.get("/conversations", requirePermission("chat"), async (_req, res, n
 
 adminRouter.get("/conversations/:id/messages", requirePermission("chat"), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = paramString(req.params.id);
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ error: { code: "INVALID_ID", message: "Bad id" } });
       return;
@@ -288,7 +290,7 @@ adminRouter.patch("/conversations/:id", requirePermission("chat"), async (req, r
       displayName?: string;
     };
     const conv = await Conversation.findByIdAndUpdate(
-      req.params.id,
+      paramString(req.params.id),
       {
         ...(humanMode !== undefined && { humanMode }),
         ...(status && { status }),
@@ -345,7 +347,7 @@ adminRouter.get("/site-pages", requirePermission("site-content"), async (_req, r
 
 adminRouter.get("/site-pages/:pageId", requirePermission("site-content"), async (req, res, next) => {
   try {
-    const { pageId } = req.params;
+    const pageId = paramString(req.params.pageId);
     const doc = await SitePage.findOne({ pageId }).lean();
     if (!doc) {
       res.json({ data: { pageId, sections: {}, id: null } });
@@ -359,7 +361,7 @@ adminRouter.get("/site-pages/:pageId", requirePermission("site-content"), async 
 
 adminRouter.put("/site-pages/:pageId", requirePermission("site-content"), async (req, res, next) => {
   try {
-    const { pageId } = req.params;
+    const pageId = paramString(req.params.pageId);
     const { sections } = req.body as { sections?: unknown };
     if (!sections || typeof sections !== "object" || Array.isArray(sections)) {
       res.status(400).json({
@@ -394,7 +396,7 @@ adminRouter.post("/conversations/:id/messages", requirePermission("chat"), async
       return;
     }
     const a = req.admin!;
-    const msg = await postAgentMessage(req.params.id, text.trim(), {
+    const msg = await postAgentMessage(paramString(req.params.id), text.trim(), {
       displayName: a.displayName,
       username: a.username,
     });
@@ -474,7 +476,7 @@ adminRouter.post("/admin-users", requirePermission("admin-users"), async (req, r
 
 adminRouter.patch("/admin-users/:id", requirePermission("admin-users"), async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const id = paramString(req.params.id);
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ error: { code: "INVALID_ID", message: "Bad id" } });
       return;
