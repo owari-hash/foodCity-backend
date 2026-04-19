@@ -30,9 +30,15 @@ const storage = multer.diskStorage({
   },
 });
 
+/** Default 15 MiB; override with `UPLOAD_MAX_MB` in `.env`. */
+const uploadMaxBytes =
+  Math.max(1, Number(process.env.UPLOAD_MAX_MB || "15") || 15) * 1024 * 1024;
+
+export const UPLOAD_MAX_BYTES = uploadMaxBytes;
+
 export const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: uploadMaxBytes },
   fileFilter: (_req: Request, file: MulterFile, cb: multer.FileFilterCallback) => {
     if (!file.mimetype.startsWith("image/")) {
       cb(new Error("Only image files are allowed"));
