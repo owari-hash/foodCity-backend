@@ -1,0 +1,18 @@
+import mongoose, { Schema } from "mongoose";
+
+const JobPostingSchema = new Schema(
+  {
+    title: { type: String, required: true },
+    company: { type: String, required: true },
+    location: { type: String, required: true },
+    description: { type: String, required: true },
+    salary: { type: String },
+    contactEmail: { type: String },
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true },
+);
+
+export type JobPostingDoc = mongoose.InferSchemaType<typeof JobPostingSchema>;
+export const JobPosting =
+  mongoose.models.JobPosting ?? mongoose.model("JobPosting", JobPostingSchema);
