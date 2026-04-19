@@ -39,7 +39,7 @@ function findAnswerByNormalizedLabel(nodes: ChoiceNode[], userNorm: string): str
       if (out.length > 0) return out;
       const nested = findAnswerByNormalizedLabel(n.choices, userNorm);
       if (nested) return nested;
-      return null;
+      return n.label.trim() || null;
     }
     const nested = findAnswerByNormalizedLabel(n.choices, userNorm);
     if (nested) return nested;

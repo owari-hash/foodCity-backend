@@ -3,7 +3,7 @@
  * 1) Admin «Чатбот» tree: user message normalized equals a choice **label** → that
  *    node’s **answer** (`chatbotFromSite.getConfiguredBotReply`).
  * 2) Else these keyword rules (`getBotReply`).
- * When `humanMode` is true, the API skips bot replies entirely.
+ * `humanMode` does not disable bot replies; operators can still reply as agents.
  */
 
 export const DEFAULT_REPLY =

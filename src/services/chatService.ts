@@ -54,27 +54,29 @@ export async function postUserMessage(
   const userLean = serializeLean(userMsg.toObject() as Record<string, unknown>);
   emitMsg(conversationId, userLean!);
 
-  if (conv.humanMode) {
-    return { userMsg: userLean, botMsg: null, humanMode: true };
-  }
-
   const configuredTrim = (await getConfiguredBotReply(text))?.trim() ?? "";
   const rulesTrim = getBotReply(text).trim();
-  const botText =
+  let botText =
     configuredTrim.length > 0
       ? configuredTrim
       : rulesTrim.length > 0
         ? rulesTrim
         : DEFAULT_REPLY;
-  const botMsg = await Message.create({
+  botText = botText.trim() || DEFAULT_REPLY;
+
+  const botMsgDoc = await Message.create({
     conversationId: new mongoose.Types.ObjectId(conversationId),
     role: "bot",
     text: botText,
   });
-  const botLean = serializeLean(botMsg.toObject() as Record<string, unknown>);
+  const botLean = serializeLean(botMsgDoc.toObject() as Record<string, unknown>);
   emitMsg(conversationId, botLean!);
 
-  return { userMsg: userLean, botMsg: botLean, humanMode: false };
+  return {
+    userMsg: userLean,
+    botMsg: botLean,
+    humanMode: Boolean(conv.humanMode),
+  };
 }
 
 export async function postAgentMessage(
