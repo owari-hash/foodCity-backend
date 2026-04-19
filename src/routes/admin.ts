@@ -9,8 +9,12 @@ import { SalesAd } from "../models/SalesAd.js";
 import { SitePage } from "../models/SitePage.js";
 import { postAgentMessage } from "../services/chatService.js";
 import { serializeDocument, serializeLean } from "../util/serialize.js";
+import { adminLoginHandler, requireAdminAuth } from "../middleware/adminAuth.js";
 
 export const adminRouter = Router();
+
+adminRouter.post("/auth/login", adminLoginHandler);
+adminRouter.use(requireAdminAuth);
 
 adminRouter.get("/stats", async (_req, res, next) => {
   try {

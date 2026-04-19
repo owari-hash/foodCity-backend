@@ -14,16 +14,17 @@ ordersPublicRouter.post("/", async (req, res, next) => {
       notes?: string;
       items?: { productName: string; quantity: number; unitPrice: number }[];
     };
-    if (!customerName || !phone || !Array.isArray(items) || items.length === 0) {
+    if (!customerName || !phone) {
       res.status(400).json({
         error: {
           code: "VALIDATION_ERROR",
-          message: "customerName, phone, and items are required",
+          message: "customerName and phone are required",
         },
       });
       return;
     }
-    const totalAmount = items.reduce(
+    const normalizedItems = Array.isArray(items) ? items : [];
+    const totalAmount = normalizedItems.reduce(
       (sum, it) => sum + Number(it.quantity) * Number(it.unitPrice),
       0,
     );
@@ -32,7 +33,7 @@ ordersPublicRouter.post("/", async (req, res, next) => {
       phone,
       email,
       address,
-      items,
+      items: normalizedItems,
       totalAmount,
       notes,
     });
