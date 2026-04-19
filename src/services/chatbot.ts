@@ -6,7 +6,7 @@
  * When `humanMode` is true, the API skips bot replies entirely.
  */
 
-const DEFAULT_REPLY =
+export const DEFAULT_REPLY =
   "Таны асуултыг бид хүлээн авлаа. Оператортой холбогдохыг хүсвэл шууд чатнаас хүлээн авна уу эсвэл +976 1100-0000 дугаарт залгана уу.";
 
 /** Lowercase, trim, stable Unicode, single spaces — better Cyrillic matching. */

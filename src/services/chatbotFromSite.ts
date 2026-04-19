@@ -34,7 +34,13 @@ function parseNode(raw: unknown, depth: number): ChoiceNode | null {
 function findAnswerByNormalizedLabel(nodes: ChoiceNode[], userNorm: string): string | null {
   for (const n of nodes) {
     const labelNorm = normalizeUserText(n.label);
-    if (labelNorm && labelNorm === userNorm) return n.answer;
+    if (labelNorm && labelNorm === userNorm) {
+      const out = (n.answer ?? "").trim();
+      if (out.length > 0) return out;
+      const nested = findAnswerByNormalizedLabel(n.choices, userNorm);
+      if (nested) return nested;
+      return null;
+    }
     const nested = findAnswerByNormalizedLabel(n.choices, userNorm);
     if (nested) return nested;
   }
@@ -87,7 +93,8 @@ export async function getConfiguredBotReply(userText: string): Promise<string | 
   if (b.startButtonLabel) {
     const startNorm = normalizeUserText(b.startButtonLabel);
     if (startNorm && startNorm === n && b.welcomeMessage) {
-      return b.welcomeMessage;
+      const w = b.welcomeMessage.trim();
+      if (w.length > 0) return w;
     }
   }
 

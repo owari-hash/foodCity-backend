@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { Conversation } from "../models/Conversation.js";
 import { Message } from "../models/Message.js";
-import { getBotReply } from "./chatbot.js";
+import { DEFAULT_REPLY, getBotReply } from "./chatbot.js";
 import {
   getConfiguredBotReply,
   getWelcomeMessageFromSite,
@@ -58,8 +58,14 @@ export async function postUserMessage(
     return { userMsg: userLean, botMsg: null, humanMode: true };
   }
 
-  const configured = await getConfiguredBotReply(text);
-  const botText = configured ?? getBotReply(text);
+  const configuredTrim = (await getConfiguredBotReply(text))?.trim() ?? "";
+  const rulesTrim = getBotReply(text).trim();
+  const botText =
+    configuredTrim.length > 0
+      ? configuredTrim
+      : rulesTrim.length > 0
+        ? rulesTrim
+        : DEFAULT_REPLY;
   const botMsg = await Message.create({
     conversationId: new mongoose.Types.ObjectId(conversationId),
     role: "bot",
