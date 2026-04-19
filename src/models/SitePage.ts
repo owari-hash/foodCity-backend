@@ -4,6 +4,8 @@ const SitePageSchema = new Schema(
   {
     pageId: { type: String, required: true, unique: true, index: true },
     sections: { type: Schema.Types.Mixed, default: {} },
+    lastEditedByUsername: { type: String },
+    lastEditedByDisplayName: { type: String },
   },
   { timestamps: true },
 );

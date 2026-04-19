@@ -61,13 +61,19 @@ export async function postUserMessage(
   return { userMsg: userLean, botMsg: botLean };
 }
 
-export async function postAgentMessage(conversationId: string, text: string) {
+export async function postAgentMessage(
+  conversationId: string,
+  text: string,
+  author?: { displayName?: string; username?: string },
+) {
   const conv = await Conversation.findById(conversationId);
   if (!conv) throw new Error("NOT_FOUND");
   const msg = await Message.create({
     conversationId: new mongoose.Types.ObjectId(conversationId),
     role: "agent",
     text,
+    ...(author?.displayName ? { agentDisplayName: author.displayName } : {}),
+    ...(author?.username ? { agentUsername: author.username } : {}),
   });
   const lean = serializeLean(msg.toObject() as Record<string, unknown>);
   emitMsg(conversationId, lean!);

@@ -10,6 +10,10 @@ const SalesAdSchema = new Schema(
     active: { type: Boolean, default: true },
     validFrom: { type: Date },
     validTo: { type: Date },
+    postedByUsername: { type: String },
+    postedByDisplayName: { type: String },
+    lastEditedByUsername: { type: String },
+    lastEditedByDisplayName: { type: String },
   },
   { timestamps: true },
 );

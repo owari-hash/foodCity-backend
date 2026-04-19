@@ -1,5 +1,6 @@
 import { Router, type Request } from "express";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import { upload } from "../uploadConfig.js";
 import { Conversation } from "../models/Conversation.js";
 import { JobPosting } from "../models/JobPosting.js";
@@ -7,16 +8,47 @@ import { Message } from "../models/Message.js";
 import { Order } from "../models/Order.js";
 import { SalesAd } from "../models/SalesAd.js";
 import { SitePage } from "../models/SitePage.js";
+import { AdminUser } from "../models/AdminUser.js";
 import { postAgentMessage } from "../services/chatService.js";
 import { serializeDocument, serializeLean } from "../util/serialize.js";
 import { adminLoginHandler, requireAdminAuth } from "../middleware/adminAuth.js";
+import { requirePermission } from "../middleware/adminRbac.js";
+import {
+  ADMIN_PERMISSIONS,
+  type AdminPermission,
+} from "../constants/adminPermissions.js";
 
 export const adminRouter = Router();
 
 adminRouter.post("/auth/login", adminLoginHandler);
 adminRouter.use(requireAdminAuth);
 
-adminRouter.get("/stats", async (req, res, next) => {
+const SALES_AUTHOR_KEYS = [
+  "postedByUsername",
+  "postedByDisplayName",
+  "lastEditedByUsername",
+  "lastEditedByDisplayName",
+] as const;
+
+function stripSalesAdBody(body: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...body };
+  for (const k of SALES_AUTHOR_KEYS) delete out[k];
+  return out;
+}
+
+function stripJobBody(body: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...body };
+  for (const k of SALES_AUTHOR_KEYS) delete out[k];
+  return out;
+}
+
+function isValidPermissionList(perms: unknown): perms is string[] {
+  if (!Array.isArray(perms)) return false;
+  const allowed = new Set<string>([...ADMIN_PERMISSIONS, "*"]);
+  return perms.every((x) => typeof x === "string" && allowed.has(x));
+}
+
+adminRouter.get("/stats", requirePermission("dashboard"), async (req, res, next) => {
   try {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -64,7 +96,7 @@ adminRouter.get("/stats", async (req, res, next) => {
 });
 
 /* ——— Orders ——— */
-adminRouter.get("/orders", async (req, res, next) => {
+adminRouter.get("/orders", requirePermission("orders"), async (req, res, next) => {
   try {
     const status = req.query.status as string | undefined;
     const filter = status ? { status } : {};
@@ -77,7 +109,7 @@ adminRouter.get("/orders", async (req, res, next) => {
   }
 });
 
-adminRouter.patch("/orders/:id", async (req, res, next) => {
+adminRouter.patch("/orders/:id", requirePermission("orders"), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status, notes } = req.body as { status?: string; notes?: string };
@@ -97,7 +129,7 @@ adminRouter.patch("/orders/:id", async (req, res, next) => {
 });
 
 /* ——— Sales ads ——— */
-adminRouter.get("/sales-ads", async (_req, res, next) => {
+adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (_req, res, next) => {
   try {
     const ads = await SalesAd.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json({
@@ -108,20 +140,32 @@ adminRouter.get("/sales-ads", async (_req, res, next) => {
   }
 });
 
-adminRouter.post("/sales-ads", async (req, res, next) => {
+adminRouter.post("/sales-ads", requirePermission("sales-ads"), async (req, res, next) => {
   try {
-    const ad = await SalesAd.create(req.body);
+    const a = req.admin!;
+    const ad = await SalesAd.create({
+      ...stripSalesAdBody(req.body as Record<string, unknown>),
+      postedByUsername: a.username,
+      postedByDisplayName: a.displayName,
+    });
     res.status(201).json({ data: serializeDocument(ad) });
   } catch (e) {
     next(e);
   }
 });
 
-adminRouter.patch("/sales-ads/:id", async (req, res, next) => {
+adminRouter.patch("/sales-ads/:id", requirePermission("sales-ads"), async (req, res, next) => {
   try {
-    const ad = await SalesAd.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const a = req.admin!;
+    const ad = await SalesAd.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...stripSalesAdBody(req.body as Record<string, unknown>),
+        lastEditedByUsername: a.username,
+        lastEditedByDisplayName: a.displayName,
+      },
+      { new: true },
+    );
     if (!ad) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "SalesAd" } });
       return;
@@ -132,7 +176,7 @@ adminRouter.patch("/sales-ads/:id", async (req, res, next) => {
   }
 });
 
-adminRouter.delete("/sales-ads/:id", async (req, res, next) => {
+adminRouter.delete("/sales-ads/:id", requirePermission("sales-ads"), async (req, res, next) => {
   try {
     const r = await SalesAd.findByIdAndDelete(req.params.id);
     if (!r) {
@@ -146,7 +190,7 @@ adminRouter.delete("/sales-ads/:id", async (req, res, next) => {
 });
 
 /* ——— Jobs ——— */
-adminRouter.get("/jobs", async (_req, res, next) => {
+adminRouter.get("/jobs", requirePermission("jobs"), async (_req, res, next) => {
   try {
     const jobs = await JobPosting.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json({
@@ -157,20 +201,32 @@ adminRouter.get("/jobs", async (_req, res, next) => {
   }
 });
 
-adminRouter.post("/jobs", async (req, res, next) => {
+adminRouter.post("/jobs", requirePermission("jobs"), async (req, res, next) => {
   try {
-    const job = await JobPosting.create(req.body);
+    const a = req.admin!;
+    const job = await JobPosting.create({
+      ...stripJobBody(req.body as Record<string, unknown>),
+      postedByUsername: a.username,
+      postedByDisplayName: a.displayName,
+    });
     res.status(201).json({ data: serializeDocument(job) });
   } catch (e) {
     next(e);
   }
 });
 
-adminRouter.patch("/jobs/:id", async (req, res, next) => {
+adminRouter.patch("/jobs/:id", requirePermission("jobs"), async (req, res, next) => {
   try {
-    const job = await JobPosting.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const a = req.admin!;
+    const job = await JobPosting.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...stripJobBody(req.body as Record<string, unknown>),
+        lastEditedByUsername: a.username,
+        lastEditedByDisplayName: a.displayName,
+      },
+      { new: true },
+    );
     if (!job) {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Job" } });
       return;
@@ -181,7 +237,7 @@ adminRouter.patch("/jobs/:id", async (req, res, next) => {
   }
 });
 
-adminRouter.delete("/jobs/:id", async (req, res, next) => {
+adminRouter.delete("/jobs/:id", requirePermission("jobs"), async (req, res, next) => {
   try {
     const r = await JobPosting.findByIdAndDelete(req.params.id);
     if (!r) {
@@ -195,7 +251,7 @@ adminRouter.delete("/jobs/:id", async (req, res, next) => {
 });
 
 /* ——— Chat (admin) ——— */
-adminRouter.get("/conversations", async (_req, res, next) => {
+adminRouter.get("/conversations", requirePermission("chat"), async (_req, res, next) => {
   try {
     const list = await Conversation.find().sort({ updatedAt: -1 }).limit(200).lean();
     res.json({
@@ -206,7 +262,7 @@ adminRouter.get("/conversations", async (_req, res, next) => {
   }
 });
 
-adminRouter.get("/conversations/:id/messages", async (req, res, next) => {
+adminRouter.get("/conversations/:id/messages", requirePermission("chat"), async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -224,7 +280,7 @@ adminRouter.get("/conversations/:id/messages", async (req, res, next) => {
   }
 });
 
-adminRouter.patch("/conversations/:id", async (req, res, next) => {
+adminRouter.patch("/conversations/:id", requirePermission("chat"), async (req, res, next) => {
   try {
     const { humanMode, status, displayName } = req.body as {
       humanMode?: boolean;
@@ -253,25 +309,30 @@ adminRouter.patch("/conversations/:id", async (req, res, next) => {
 type UploadRequest = Request & { file?: Express.Multer.File };
 
 /** POST multipart/form-data, field name: `file` — saves under /upload on API host */
-adminRouter.post("/upload", upload.single("file"), (req: UploadRequest, res, next) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({
-        error: { code: "VALIDATION_ERROR", message: "file field required" },
+adminRouter.post(
+  "/upload",
+  requirePermission("upload"),
+  upload.single("file"),
+  (req: UploadRequest, res, next) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "file field required" },
+        });
+        return;
+      }
+      const publicPath = `/upload/${req.file.filename}`;
+      res.status(201).json({
+        data: { path: publicPath },
       });
-      return;
+    } catch (e) {
+      next(e);
     }
-    const publicPath = `/upload/${req.file.filename}`;
-    res.status(201).json({
-      data: { path: publicPath },
-    });
-  } catch (e) {
-    next(e);
-  }
-});
+  },
+);
 
 /* ——— Site pages (marketing content) ——— */
-adminRouter.get("/site-pages", async (_req, res, next) => {
+adminRouter.get("/site-pages", requirePermission("site-content"), async (_req, res, next) => {
   try {
     const list = await SitePage.find().sort({ pageId: 1 }).lean();
     res.json({
@@ -282,7 +343,7 @@ adminRouter.get("/site-pages", async (_req, res, next) => {
   }
 });
 
-adminRouter.get("/site-pages/:pageId", async (req, res, next) => {
+adminRouter.get("/site-pages/:pageId", requirePermission("site-content"), async (req, res, next) => {
   try {
     const { pageId } = req.params;
     const doc = await SitePage.findOne({ pageId }).lean();
@@ -296,7 +357,7 @@ adminRouter.get("/site-pages/:pageId", async (req, res, next) => {
   }
 });
 
-adminRouter.put("/site-pages/:pageId", async (req, res, next) => {
+adminRouter.put("/site-pages/:pageId", requirePermission("site-content"), async (req, res, next) => {
   try {
     const { pageId } = req.params;
     const { sections } = req.body as { sections?: unknown };
@@ -306,9 +367,15 @@ adminRouter.put("/site-pages/:pageId", async (req, res, next) => {
       });
       return;
     }
+    const a = req.admin!;
     const doc = await SitePage.findOneAndUpdate(
       { pageId },
-      { pageId, sections },
+      {
+        pageId,
+        sections,
+        lastEditedByUsername: a.username,
+        lastEditedByDisplayName: a.displayName,
+      },
       { new: true, upsert: true, runValidators: true },
     );
     res.json({ data: serializeDocument(doc!) });
@@ -317,7 +384,7 @@ adminRouter.put("/site-pages/:pageId", async (req, res, next) => {
   }
 });
 
-adminRouter.post("/conversations/:id/messages", async (req, res, next) => {
+adminRouter.post("/conversations/:id/messages", requirePermission("chat"), async (req, res, next) => {
   try {
     const { text } = req.body as { text?: string };
     if (!text?.trim()) {
@@ -326,7 +393,11 @@ adminRouter.post("/conversations/:id/messages", async (req, res, next) => {
       });
       return;
     }
-    const msg = await postAgentMessage(req.params.id, text.trim());
+    const a = req.admin!;
+    const msg = await postAgentMessage(req.params.id, text.trim(), {
+      displayName: a.displayName,
+      username: a.username,
+    });
     res.status(201).json({ data: msg });
   } catch (e) {
     const err = e as Error;
@@ -334,6 +405,128 @@ adminRouter.post("/conversations/:id/messages", async (req, res, next) => {
       res.status(404).json({ error: { code: "NOT_FOUND", message: "Chat" } });
       return;
     }
+    next(e);
+  }
+});
+
+/* ——— Admin users (RBAC) ——— */
+adminRouter.get("/admin-users", requirePermission("admin-users"), async (_req, res, next) => {
+  try {
+    const users = await AdminUser.find().select("-passwordHash").sort({ username: 1 }).lean();
+    res.json({
+      data: users.map((u) => serializeLean(u as Record<string, unknown>)),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+adminRouter.post("/admin-users", requirePermission("admin-users"), async (req, res, next) => {
+  try {
+    const { username, password, displayName, permissions } = req.body as {
+      username?: string;
+      password?: string;
+      displayName?: string;
+      permissions?: unknown;
+    };
+    if (
+      typeof username !== "string" ||
+      typeof password !== "string" ||
+      typeof displayName !== "string" ||
+      !isValidPermissionList(permissions) ||
+      permissions.length === 0
+    ) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "username, password, displayName, permissions[] required",
+        },
+      });
+      return;
+    }
+    const u = username.trim().toLowerCase();
+    if (u.length < 2 || password.length < 6) {
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "Invalid username or password length" },
+      });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const created = await AdminUser.create({
+      username: u,
+      passwordHash,
+      displayName: displayName.trim(),
+      permissions,
+      active: true,
+    });
+    const safe = await AdminUser.findById(created._id).select("-passwordHash").lean();
+    res.status(201).json({ data: serializeLean(safe as Record<string, unknown>) });
+  } catch (e) {
+    if ((e as { code?: number }).code === 11000) {
+      res.status(409).json({
+        error: { code: "DUPLICATE", message: "Username already exists" },
+      });
+      return;
+    }
+    next(e);
+  }
+});
+
+adminRouter.patch("/admin-users/:id", requirePermission("admin-users"), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: { code: "INVALID_ID", message: "Bad id" } });
+      return;
+    }
+    const { displayName, permissions, active, password } = req.body as {
+      displayName?: string;
+      permissions?: unknown;
+      active?: boolean;
+      password?: string;
+    };
+    const update: Record<string, unknown> = {};
+    if (displayName !== undefined) {
+      if (typeof displayName !== "string" || !displayName.trim()) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "displayName invalid" } });
+        return;
+      }
+      update.displayName = displayName.trim();
+    }
+    if (permissions !== undefined) {
+      if (!isValidPermissionList(permissions) || permissions.length === 0) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "permissions invalid" } });
+        return;
+      }
+      update.permissions = permissions;
+    }
+    if (active !== undefined) {
+      if (typeof active !== "boolean") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "active must be boolean" } });
+        return;
+      }
+      update.active = active;
+    }
+    if (password !== undefined) {
+      if (typeof password !== "string" || password.length < 6) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "password invalid" } });
+        return;
+      }
+      update.passwordHash = await bcrypt.hash(password, 10);
+    }
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "No fields to update" } });
+      return;
+    }
+    const updated = await AdminUser.findByIdAndUpdate(id, update, { new: true })
+      .select("-passwordHash")
+      .lean();
+    if (!updated) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "AdminUser" } });
+      return;
+    }
+    res.json({ data: serializeLean(updated as Record<string, unknown>) });
+  } catch (e) {
     next(e);
   }
 });

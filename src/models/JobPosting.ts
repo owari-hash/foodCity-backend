@@ -11,6 +11,10 @@ const JobPostingSchema = new Schema(
     /** Public URL or `/upload/…` from admin upload */
     imageUrl: { type: String },
     active: { type: Boolean, default: true },
+    postedByUsername: { type: String },
+    postedByDisplayName: { type: String },
+    lastEditedByUsername: { type: String },
+    lastEditedByDisplayName: { type: String },
   },
   { timestamps: true },
 );

@@ -11,12 +11,14 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src",
-    "seed:site-pages": "tsx src/scripts/seedSitePages.ts"
+    "seed:site-pages": "tsx src/scripts/seedSitePages.ts",
+    "seed:admin-user": "tsx src/scripts/seedAdminUser.ts"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
