@@ -2,3 +2,7 @@ node_modules/
 dist/
 .env
 *.log
+
+# User uploads (API serves from /upload)
+upload/*
+!upload/.gitkeep

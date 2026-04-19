@@ -3,6 +3,7 @@ import http from "http";
 import cors from "cors";
 import express from "express";
 import { connectMongo } from "./db.js";
+import { UPLOAD_DIR } from "./uploadConfig.js";
 import { healthRouter } from "./routes/health.js";
 import { adminRouter } from "./routes/admin.js";
 import { ordersPublicRouter } from "./routes/ordersPublic.js";
@@ -37,6 +38,9 @@ app.use(
   }),
 );
 app.use(express.json({ limit: "1mb" }));
+
+/** Public URLs: GET /upload/... — same paths stored in CMS (e.g. /upload/abc.jpg) */
+app.use("/upload", express.static(UPLOAD_DIR));
 
 app.get("/", (_req, res) => {
   res.json({ data: { name: "foodcity-back", version: "1.0.0" } });

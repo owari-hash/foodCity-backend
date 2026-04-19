@@ -1,5 +1,6 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import { upload } from "../uploadConfig.js";
 import { Conversation } from "../models/Conversation.js";
 import { JobPosting } from "../models/JobPosting.js";
 import { Message } from "../models/Message.js";
@@ -223,6 +224,24 @@ adminRouter.patch("/conversations/:id", async (req, res, next) => {
       return;
     }
     res.json({ data: serializeDocument(conv) });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** POST multipart/form-data, field name: `file` — saves under /upload on API host */
+adminRouter.post("/upload", upload.single("file"), (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "file field required" },
+      });
+      return;
+    }
+    const publicPath = `/upload/${req.file.filename}`;
+    res.status(201).json({
+      data: { path: publicPath },
+    });
   } catch (e) {
     next(e);
   }
