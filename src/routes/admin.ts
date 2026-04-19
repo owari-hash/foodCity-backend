@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import mongoose from "mongoose";
 import { upload } from "../uploadConfig.js";
 import { Conversation } from "../models/Conversation.js";
@@ -229,8 +229,10 @@ adminRouter.patch("/conversations/:id", async (req, res, next) => {
   }
 });
 
+type UploadRequest = Request & { file?: Express.Multer.File };
+
 /** POST multipart/form-data, field name: `file` — saves under /upload on API host */
-adminRouter.post("/upload", upload.single("file"), (req, res, next) => {
+adminRouter.post("/upload", upload.single("file"), (req: UploadRequest, res, next) => {
   try {
     if (!req.file) {
       res.status(400).json({
