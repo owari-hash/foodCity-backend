@@ -4,10 +4,11 @@ import { serializeLean } from "../util/serialize.js";
 
 export const salesAdsPublicRouter = Router();
 
-salesAdsPublicRouter.get("/", async (_req, res, next) => {
+salesAdsPublicRouter.get("/", async (req, res, next) => {
   try {
+    const lang = (req.query.lang as string) || "mn";
     const now = new Date();
-    const raw = await SalesAd.find({ active: true }).sort({ createdAt: -1 }).lean();
+    const raw = await SalesAd.find({ active: true, language: lang }).sort({ createdAt: -1 }).lean();
     const ads = raw.filter((a) => {
       const vf = a.validFrom ? new Date(a.validFrom) <= now : true;
       const vt = a.validTo ? new Date(a.validTo) >= now : true;

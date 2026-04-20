@@ -4,9 +4,10 @@ import { serializeLean } from "../util/serialize.js";
 
 export const jobsPublicRouter = Router();
 
-jobsPublicRouter.get("/", async (_req, res, next) => {
+jobsPublicRouter.get("/", async (req, res, next) => {
   try {
-    const jobs = await JobPosting.find({ active: true })
+    const lang = (req.query.lang as string) || "mn";
+    const jobs = await JobPosting.find({ active: true, language: lang })
       .sort({ createdAt: -1 })
       .lean();
     res.json({

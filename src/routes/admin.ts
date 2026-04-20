@@ -102,7 +102,8 @@ adminRouter.get("/stats", requirePermission("dashboard"), async (req, res, next)
 adminRouter.get("/orders", requirePermission("orders"), async (req, res, next) => {
   try {
     const status = req.query.status as string | undefined;
-    const filter = status ? { status } : {};
+    const lang = (req.query.lang as string) || "mn";
+    const filter = { language: lang, ...(status ? { status } : {}) };
     const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     res.json({
       data: orders.map((o) => serializeLean(o as Record<string, unknown>)),
@@ -132,9 +133,10 @@ adminRouter.patch("/orders/:id", requirePermission("orders"), async (req, res, n
 });
 
 /* ——— Sales ads ——— */
-adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (_req, res, next) => {
+adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (req, res, next) => {
   try {
-    const ads = await SalesAd.find().sort({ createdAt: -1 }).limit(200).lean();
+    const lang = (req.query.lang as string) || "mn";
+    const ads = await SalesAd.find({ language: lang }).sort({ createdAt: -1 }).limit(200).lean();
     res.json({
       data: ads.map((a) => serializeLean(a as Record<string, unknown>)),
     });
@@ -146,8 +148,11 @@ adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (_req, res, 
 adminRouter.post("/sales-ads", requirePermission("sales-ads"), async (req, res, next) => {
   try {
     const a = req.admin!;
+    const requestBody = req.body as Record<string, unknown>;
+    const lang = (requestBody.language as string) || "mn";
     const ad = await SalesAd.create({
-      ...stripSalesAdBody(req.body as Record<string, unknown>),
+      ...stripSalesAdBody(requestBody),
+      language: lang,
       postedByUsername: a.username,
       postedByDisplayName: a.displayName,
     });
@@ -193,9 +198,10 @@ adminRouter.delete("/sales-ads/:id", requirePermission("sales-ads"), async (req,
 });
 
 /* ——— Jobs ——— */
-adminRouter.get("/jobs", requirePermission("jobs"), async (_req, res, next) => {
+adminRouter.get("/jobs", requirePermission("jobs"), async (req, res, next) => {
   try {
-    const jobs = await JobPosting.find().sort({ createdAt: -1 }).limit(200).lean();
+    const lang = (req.query.lang as string) || "mn";
+    const jobs = await JobPosting.find({ language: lang }).sort({ createdAt: -1 }).limit(200).lean();
     res.json({
       data: jobs.map((j) => serializeLean(j as Record<string, unknown>)),
     });
@@ -207,8 +213,11 @@ adminRouter.get("/jobs", requirePermission("jobs"), async (_req, res, next) => {
 adminRouter.post("/jobs", requirePermission("jobs"), async (req, res, next) => {
   try {
     const a = req.admin!;
+    const requestBody = req.body as Record<string, unknown>;
+    const lang = (requestBody.language as string) || "mn";
     const job = await JobPosting.create({
-      ...stripJobBody(req.body as Record<string, unknown>),
+      ...stripJobBody(requestBody),
+      language: lang,
       postedByUsername: a.username,
       postedByDisplayName: a.displayName,
     });
@@ -335,9 +344,10 @@ adminRouter.post(
 );
 
 /* ——— Site pages (marketing content) ——— */
-adminRouter.get("/site-pages", requirePermission("site-content"), async (_req, res, next) => {
+adminRouter.get("/site-pages", requirePermission("site-content"), async (req, res, next) => {
   try {
-    const list = await SitePage.find().sort({ pageId: 1 }).lean();
+    const lang = (req.query.lang as string) || "mn";
+    const list = await SitePage.find({ language: lang }).sort({ pageId: 1 }).lean();
     res.json({
       data: list.map((p) => serializeLean(p as Record<string, unknown>)),
     });
@@ -349,9 +359,10 @@ adminRouter.get("/site-pages", requirePermission("site-content"), async (_req, r
 adminRouter.get("/site-pages/:pageId", requirePermission("site-content"), async (req, res, next) => {
   try {
     const pageId = paramString(req.params.pageId);
-    const doc = await SitePage.findOne({ pageId }).lean();
+    const lang = (req.query.lang as string) || "mn";
+    const doc = await SitePage.findOne({ pageId, language: lang }).lean();
     if (!doc) {
-      res.json({ data: { pageId, sections: {}, id: null } });
+      res.json({ data: { pageId, language: lang, sections: {}, id: null } });
       return;
     }
     res.json({ data: serializeLean(doc as Record<string, unknown>) });
@@ -363,6 +374,7 @@ adminRouter.get("/site-pages/:pageId", requirePermission("site-content"), async 
 adminRouter.put("/site-pages/:pageId", requirePermission("site-content"), async (req, res, next) => {
   try {
     const pageId = paramString(req.params.pageId);
+    const lang = (req.query.lang as string) || "mn";
     const { sections } = req.body as { sections?: unknown };
     if (!sections || typeof sections !== "object" || Array.isArray(sections)) {
       res.status(400).json({
@@ -372,9 +384,10 @@ adminRouter.put("/site-pages/:pageId", requirePermission("site-content"), async 
     }
     const a = req.admin!;
     const doc = await SitePage.findOneAndUpdate(
-      { pageId },
+      { pageId, language: lang },
       {
         pageId,
+        language: lang,
         sections,
         lastEditedByUsername: a.username,
         lastEditedByDisplayName: a.displayName,

@@ -7,14 +7,15 @@ export const sitePagesPublicRouter = Router();
 sitePagesPublicRouter.get("/:pageId", async (req, res, next) => {
   try {
     const { pageId } = req.params;
+    const lang = (req.query.lang as string) || "mn";
     if (!pageId || pageId.length > 64) {
       res.status(400).json({ error: { code: "BAD_REQUEST", message: "pageId" } });
       return;
     }
-    const doc = await SitePage.findOne({ pageId }).lean();
+    const doc = await SitePage.findOne({ pageId, language: lang }).lean();
     if (!doc) {
       res.json({
-        data: { pageId, sections: {}, updatedAt: null },
+        data: { pageId, language: lang, sections: {}, updatedAt: null },
       });
       return;
     }

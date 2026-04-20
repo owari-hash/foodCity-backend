@@ -3,6 +3,7 @@ import mongoose, { Schema } from "mongoose";
 const SalesAdSchema = new Schema(
   {
     title: { type: String, required: true },
+    language: { type: String, required: true, default: "mn", enum: ["mn", "en"] },
     summary: { type: String },
     body: { type: String, required: true },
     imageUrl: { type: String },
