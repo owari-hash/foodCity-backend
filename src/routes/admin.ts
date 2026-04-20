@@ -16,10 +16,11 @@ export const adminRouter = Router();
 adminRouter.post("/auth/login", adminLoginHandler);
 adminRouter.use(requireAdminAuth);
 
-adminRouter.get("/stats", async (_req, res, next) => {
+adminRouter.get("/stats", async (req, res, next) => {
   try {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
+
     const [
       ordersToday,
       revenueAgg,
@@ -30,19 +31,21 @@ adminRouter.get("/stats", async (_req, res, next) => {
       openConversations,
       humanModeChats,
     ] = await Promise.all([
-      Order.countDocuments({ createdAt: { $gte: start } }),
+      Order.countDocuments({ createdAt: { $gte: start } }).catch(() => 0),
       Order.aggregate<{ total: number }>([
         { $match: { createdAt: { $gte: start } } },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-      ]),
-      Order.countDocuments({ status: "pending" }),
-      SalesAd.countDocuments({ active: true }),
-      JobPosting.countDocuments({ active: true }),
-      Order.countDocuments(),
-      Conversation.countDocuments({ status: "open" }),
-      Conversation.countDocuments({ humanMode: true, status: "open" }),
+      ]).catch(() => []),
+      Order.countDocuments({ status: "pending" }).catch(() => 0),
+      SalesAd.countDocuments({ active: true }).catch(() => 0),
+      JobPosting.countDocuments({ active: true }).catch(() => 0),
+      Order.countDocuments().catch(() => 0),
+      Conversation.countDocuments({ status: "open" }).catch(() => 0),
+      Conversation.countDocuments({ humanMode: true, status: "open" }).catch(() => 0),
     ]);
+
     const revenueToday = revenueAgg[0]?.total ?? 0;
+
     res.json({
       data: {
         ordersToday,
