@@ -26,24 +26,7 @@ export const adminRouter = Router();
 adminRouter.post("/auth/login", adminLoginHandler);
 adminRouter.use(requireAdminAuth);
 
-const SALES_AUTHOR_KEYS = [
-  "postedByUsername",
-  "postedByDisplayName",
-  "lastEditedByUsername",
-  "lastEditedByDisplayName",
-] as const;
 
-function stripSalesAdBody(body: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...body };
-  for (const k of SALES_AUTHOR_KEYS) delete out[k];
-  return out;
-}
-
-function stripJobBody(body: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...body };
-  for (const k of SALES_AUTHOR_KEYS) delete out[k];
-  return out;
-}
 
 function isValidPermissionList(perms: unknown): perms is string[] {
   if (!Array.isArray(perms)) return false;
@@ -133,10 +116,9 @@ adminRouter.patch("/orders/:id", requirePermission("orders"), async (req, res, n
 });
 
 /* ——— Sales ads ——— */
-adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (req, res, next) => {
+adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (_req, res, next) => {
   try {
-    const lang = (req.query.lang as string) || "mn";
-    const ads = await SalesAd.find({ language: lang }).sort({ createdAt: -1 }).limit(200).lean();
+    const ads = await SalesAd.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json({
       data: ads.map((a) => serializeLean(a as Record<string, unknown>)),
     });
@@ -148,11 +130,23 @@ adminRouter.get("/sales-ads", requirePermission("sales-ads"), async (req, res, n
 adminRouter.post("/sales-ads", requirePermission("sales-ads"), async (req, res, next) => {
   try {
     const a = req.admin!;
-    const requestBody = req.body as Record<string, unknown>;
-    const lang = (requestBody.language as string) || "mn";
+    const { mn, en, imageUrl, externalUrl, active, validFrom, validTo } = req.body as {
+      mn?: { title?: string; summary?: string; body?: string };
+      en?: { title?: string; summary?: string; body?: string };
+      imageUrl?: string;
+      externalUrl?: string;
+      active?: boolean;
+      validFrom?: string;
+      validTo?: string;
+    };
     const ad = await SalesAd.create({
-      ...stripSalesAdBody(requestBody),
-      language: lang,
+      mn: { title: mn?.title ?? "", summary: mn?.summary ?? "", body: mn?.body ?? "" },
+      en: { title: en?.title ?? "", summary: en?.summary ?? "", body: en?.body ?? "" },
+      imageUrl: imageUrl?.trim() || undefined,
+      externalUrl: externalUrl?.trim() || undefined,
+      active: active ?? true,
+      validFrom: validFrom ? new Date(validFrom) : undefined,
+      validTo: validTo ? new Date(validTo) : undefined,
       postedByUsername: a.username,
       postedByDisplayName: a.displayName,
     });
@@ -165,13 +159,29 @@ adminRouter.post("/sales-ads", requirePermission("sales-ads"), async (req, res, 
 adminRouter.patch("/sales-ads/:id", requirePermission("sales-ads"), async (req, res, next) => {
   try {
     const a = req.admin!;
+    const { mn, en, imageUrl, externalUrl, active, validFrom, validTo } = req.body as {
+      mn?: { title?: string; summary?: string; body?: string };
+      en?: { title?: string; summary?: string; body?: string };
+      imageUrl?: string;
+      externalUrl?: string;
+      active?: boolean;
+      validFrom?: string | null;
+      validTo?: string | null;
+    };
+    const update: Record<string, unknown> = {
+      lastEditedByUsername: a.username,
+      lastEditedByDisplayName: a.displayName,
+    };
+    if (mn !== undefined) update.mn = { title: mn.title ?? "", summary: mn.summary ?? "", body: mn.body ?? "" };
+    if (en !== undefined) update.en = { title: en.title ?? "", summary: en.summary ?? "", body: en.body ?? "" };
+    if (imageUrl !== undefined) update.imageUrl = imageUrl.trim() || undefined;
+    if (externalUrl !== undefined) update.externalUrl = externalUrl.trim() || undefined;
+    if (active !== undefined) update.active = active;
+    if (validFrom !== undefined) update.validFrom = validFrom ? new Date(validFrom) : undefined;
+    if (validTo !== undefined) update.validTo = validTo ? new Date(validTo) : undefined;
     const ad = await SalesAd.findByIdAndUpdate(
       paramString(req.params.id),
-      {
-        ...stripSalesAdBody(req.body as Record<string, unknown>),
-        lastEditedByUsername: a.username,
-        lastEditedByDisplayName: a.displayName,
-      },
+      update,
       { new: true },
     );
     if (!ad) {
@@ -198,10 +208,9 @@ adminRouter.delete("/sales-ads/:id", requirePermission("sales-ads"), async (req,
 });
 
 /* ——— Jobs ——— */
-adminRouter.get("/jobs", requirePermission("jobs"), async (req, res, next) => {
+adminRouter.get("/jobs", requirePermission("jobs"), async (_req, res, next) => {
   try {
-    const lang = (req.query.lang as string) || "mn";
-    const jobs = await JobPosting.find({ language: lang }).sort({ createdAt: -1 }).limit(200).lean();
+    const jobs = await JobPosting.find().sort({ createdAt: -1 }).limit(200).lean();
     res.json({
       data: jobs.map((j) => serializeLean(j as Record<string, unknown>)),
     });
@@ -213,11 +222,21 @@ adminRouter.get("/jobs", requirePermission("jobs"), async (req, res, next) => {
 adminRouter.post("/jobs", requirePermission("jobs"), async (req, res, next) => {
   try {
     const a = req.admin!;
-    const requestBody = req.body as Record<string, unknown>;
-    const lang = (requestBody.language as string) || "mn";
+    const { mn, en, company, contactEmail, imageUrl, active } = req.body as {
+      mn?: { title?: string; location?: string; description?: string; salary?: string };
+      en?: { title?: string; location?: string; description?: string; salary?: string };
+      company?: string;
+      contactEmail?: string;
+      imageUrl?: string;
+      active?: boolean;
+    };
     const job = await JobPosting.create({
-      ...stripJobBody(requestBody),
-      language: lang,
+      mn: { title: mn?.title ?? "", location: mn?.location ?? "", description: mn?.description ?? "", salary: mn?.salary ?? "" },
+      en: { title: en?.title ?? "", location: en?.location ?? "", description: en?.description ?? "", salary: en?.salary ?? "" },
+      company: (company ?? "").trim(),
+      contactEmail: contactEmail?.trim() || undefined,
+      imageUrl: imageUrl?.trim() || undefined,
+      active: active ?? true,
       postedByUsername: a.username,
       postedByDisplayName: a.displayName,
     });
@@ -230,13 +249,27 @@ adminRouter.post("/jobs", requirePermission("jobs"), async (req, res, next) => {
 adminRouter.patch("/jobs/:id", requirePermission("jobs"), async (req, res, next) => {
   try {
     const a = req.admin!;
+    const { mn, en, company, contactEmail, imageUrl, active } = req.body as {
+      mn?: { title?: string; location?: string; description?: string; salary?: string };
+      en?: { title?: string; location?: string; description?: string; salary?: string };
+      company?: string;
+      contactEmail?: string;
+      imageUrl?: string;
+      active?: boolean;
+    };
+    const update: Record<string, unknown> = {
+      lastEditedByUsername: a.username,
+      lastEditedByDisplayName: a.displayName,
+    };
+    if (mn !== undefined) update.mn = { title: mn.title ?? "", location: mn.location ?? "", description: mn.description ?? "", salary: mn.salary ?? "" };
+    if (en !== undefined) update.en = { title: en.title ?? "", location: en.location ?? "", description: en.description ?? "", salary: en.salary ?? "" };
+    if (company !== undefined) update.company = (company ?? "").trim();
+    if (contactEmail !== undefined) update.contactEmail = contactEmail.trim() || undefined;
+    if (imageUrl !== undefined) update.imageUrl = imageUrl.trim() || undefined;
+    if (active !== undefined) update.active = active;
     const job = await JobPosting.findByIdAndUpdate(
       paramString(req.params.id),
-      {
-        ...stripJobBody(req.body as Record<string, unknown>),
-        lastEditedByUsername: a.username,
-        lastEditedByDisplayName: a.displayName,
-      },
+      update,
       { new: true },
     );
     if (!job) {

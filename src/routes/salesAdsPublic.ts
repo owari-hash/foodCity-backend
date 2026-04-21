@@ -6,17 +6,38 @@ export const salesAdsPublicRouter = Router();
 
 salesAdsPublicRouter.get("/", async (req, res, next) => {
   try {
-    const lang = (req.query.lang as string) || "mn";
+    const lang = ((req.query.lang as string) || "mn") as "mn" | "en";
     const now = new Date();
-    const raw = await SalesAd.find({ active: true, language: lang }).sort({ createdAt: -1 }).lean();
+    const raw = await SalesAd.find({ active: true }).sort({ createdAt: -1 }).lean();
     const ads = raw.filter((a) => {
       const vf = a.validFrom ? new Date(a.validFrom) <= now : true;
       const vt = a.validTo ? new Date(a.validTo) >= now : true;
       return vf && vt;
     });
-    res.json({
-      data: ads.map((a) => serializeLean(a as Record<string, unknown>)),
+
+    const data = ads.map((a) => {
+      const base = serializeLean(a as Record<string, unknown>)!;
+      const langContent = (a[lang] ?? {}) as Record<string, unknown>;
+      return {
+        id: base.id,
+        title: langContent.title ?? "",
+        summary: langContent.summary ?? "",
+        body: langContent.body ?? "",
+        imageUrl: base.imageUrl,
+        externalUrl: base.externalUrl,
+        active: base.active,
+        validFrom: base.validFrom,
+        validTo: base.validTo,
+        postedByUsername: base.postedByUsername,
+        postedByDisplayName: base.postedByDisplayName,
+        lastEditedByUsername: base.lastEditedByUsername,
+        lastEditedByDisplayName: base.lastEditedByDisplayName,
+        createdAt: base.createdAt,
+        updatedAt: base.updatedAt,
+      };
     });
+
+    res.json({ data });
   } catch (e) {
     next(e);
   }

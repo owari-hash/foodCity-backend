@@ -1,13 +1,20 @@
 import mongoose, { Schema } from "mongoose";
 
+const LangContentSchema = new Schema(
+  {
+    title: { type: String, default: "" },
+    location: { type: String, default: "" },
+    description: { type: String, default: "" },
+    salary: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
 const JobPostingSchema = new Schema(
   {
-    title: { type: String, required: true },
-    language: { type: String, required: true, default: "mn", enum: ["mn", "en"] },
+    mn: { type: LangContentSchema, default: () => ({}) },
+    en: { type: LangContentSchema, default: () => ({}) },
     company: { type: String, required: true },
-    location: { type: String, required: true },
-    description: { type: String, required: true },
-    salary: { type: String },
     contactEmail: { type: String },
     /** Public URL or `/upload/…` from admin upload */
     imageUrl: { type: String },

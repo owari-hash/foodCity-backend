@@ -4,6 +4,15 @@ import { serializeLean } from "../util/serialize.js";
 
 export const sitePagesPublicRouter = Router();
 
+sitePagesPublicRouter.get("/drop-index", async (req, res) => {
+  try {
+    await SitePage.collection.dropIndex("pageId_1");
+    res.send("Dropped index pageId_1");
+  } catch (e: any) {
+    res.send("Could not drop pageId_1 index: " + e.message);
+  }
+});
+
 sitePagesPublicRouter.get("/:pageId", async (req, res, next) => {
   try {
     const { pageId } = req.params;
