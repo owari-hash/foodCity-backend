@@ -12,6 +12,7 @@ const OrderItemSchema = new Schema(
 const OrderSchema = new Schema(
   {
     customerName: { type: String, required: true },
+    language: { type: String, required: true, default: "mn", enum: ["mn", "en"] },
     phone: { type: String, required: true },
     email: { type: String },
     address: { type: String },

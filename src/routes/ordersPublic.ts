@@ -6,12 +6,13 @@ export const ordersPublicRouter = Router();
 
 ordersPublicRouter.post("/", async (req, res, next) => {
   try {
-    const { customerName, phone, email, address, items, notes } = req.body as {
+    const { customerName, phone, email, address, items, notes, language } = req.body as {
       customerName?: string;
       phone?: string;
       email?: string;
       address?: string;
       notes?: string;
+      language?: string;
       items?: { productName: string; quantity: number; unitPrice: number }[];
     };
     if (!customerName || !phone) {
@@ -30,6 +31,7 @@ ordersPublicRouter.post("/", async (req, res, next) => {
     );
     const order = await Order.create({
       customerName,
+      language: language || "mn",
       phone,
       email,
       address,

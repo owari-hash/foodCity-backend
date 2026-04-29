@@ -4,17 +4,27 @@ import { serializeLean } from "../util/serialize.js";
 
 export const sitePagesPublicRouter = Router();
 
+sitePagesPublicRouter.get("/drop-index", async (req, res) => {
+  try {
+    await SitePage.collection.dropIndex("pageId_1");
+    res.send("Dropped index pageId_1");
+  } catch (e: any) {
+    res.send("Could not drop pageId_1 index: " + e.message);
+  }
+});
+
 sitePagesPublicRouter.get("/:pageId", async (req, res, next) => {
   try {
     const { pageId } = req.params;
+    const lang = (req.query.lang as string) || "mn";
     if (!pageId || pageId.length > 64) {
       res.status(400).json({ error: { code: "BAD_REQUEST", message: "pageId" } });
       return;
     }
-    const doc = await SitePage.findOne({ pageId }).lean();
+    const doc = await SitePage.findOne({ pageId, language: lang }).lean();
     if (!doc) {
       res.json({
-        data: { pageId, sections: {}, updatedAt: null },
+        data: { pageId, language: lang, sections: {}, updatedAt: null },
       });
       return;
     }

@@ -18,18 +18,17 @@ import { initSocket } from "./socket.js";
 const app = express();
 const port = Number(process.env.PORT) || 4000;
 /** Allowed browser origins (REST + Socket.io). Override with CORS_ORIGIN in .env */
-const corsOrigin =
-  process.env.CORS_ORIGIN ??
-  [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "https://bukhbatllc.mn",
-    "https://www.bukhbatllc.mn",
-    "http://bukhbatllc.mn",
-    "http://www.bukhbatllc.mn",
-  ].join(",");
-const corsOrigins = corsOrigin.split(",").map((o) => o.trim());
+const PRODUCTION_ORIGINS = [
+  "https://bukhbatllc.mn",
+  "https://www.bukhbatllc.mn",
+  "http://bukhbatllc.mn",
+  "http://www.bukhbatllc.mn",
+];
+const envOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+const corsOrigins = [...new Set([...envOrigins, ...PRODUCTION_ORIGINS])];
 
 app.use(
   cors({
@@ -37,7 +36,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "250mb" }));
+app.use(express.urlencoded({ extended: true, limit: "250mb" }));
 
 /** Public URLs: GET /upload/... — same paths stored in CMS (e.g. /upload/abc.jpg) */
 app.use("/upload", express.static(UPLOAD_DIR));
@@ -53,6 +53,30 @@ app.use("/api/v1/jobs", jobsPublicRouter);
 app.use("/api/v1/chat", chatPublicRouter);
 app.use("/api/v1/site-pages", sitePagesPublicRouter);
 app.use("/api/v1/admin", adminRouter);
+
+/**
+ * Some reverse proxies forward the browser path `/api/v1/...` to the Node app as `/v1/...`
+ * (strip `/api`). Duplicate mounts keep the same handlers reachable in both cases.
+ */
+app.use("/v1", healthRouter);
+app.use("/v1/orders", ordersPublicRouter);
+app.use("/v1/sales-ads", salesAdsPublicRouter);
+app.use("/v1/jobs", jobsPublicRouter);
+app.use("/v1/chat", chatPublicRouter);
+app.use("/v1/site-pages", sitePagesPublicRouter);
+app.use("/v1/admin", adminRouter);
+
+/**
+ * When the proxy strips the full `/api/v1/` prefix (`location /api/v1/ { proxy_pass …/; }`),
+ * the browser path `/api/v1/admin/site-pages/…` arrives as `/admin/site-pages/…`.
+ */
+app.use("/orders", ordersPublicRouter);
+app.use("/sales-ads", salesAdsPublicRouter);
+app.use("/jobs", jobsPublicRouter);
+app.use("/chat", chatPublicRouter);
+app.use("/site-pages", sitePagesPublicRouter);
+app.use("/admin", adminRouter);
+app.use("/", healthRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

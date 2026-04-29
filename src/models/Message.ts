@@ -14,6 +14,9 @@ const MessageSchema = new Schema(
       required: true,
     },
     text: { type: String, required: true },
+    /** Set when role is agent — admin who sent the reply */
+    agentDisplayName: { type: String },
+    agentUsername: { type: String },
   },
   { timestamps: true },
 );
