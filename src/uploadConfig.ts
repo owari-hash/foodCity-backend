@@ -12,9 +12,9 @@ type MulterFile = Express.Multer.File;
 const IMAGE_EXTS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]);
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".ogg", ".avi"]);
 
-/** Default 15 MiB for images; override with UPLOAD_MAX_MB in .env */
+/** Default 200 MiB for images; override with UPLOAD_MAX_MB in .env */
 const IMAGE_MAX_BYTES =
-  Math.max(1, Number(process.env.UPLOAD_MAX_MB || "15") || 15) * 1024 * 1024;
+  Math.max(1, Number(process.env.UPLOAD_MAX_MB || "200") || 200) * 1024 * 1024;
 
 /** Default 200 MiB for videos; override with UPLOAD_VIDEO_MAX_MB in .env */
 const VIDEO_MAX_BYTES =
