@@ -46,7 +46,7 @@ const sitePageSeeds: Record<string, Record<string, unknown>> = {
       ],
     },
   },
-  services: {
+  gallery: {
     header: {
       badge: "Бидний гүйцэтгэсэн ажил",
       h2Line1: "Түүхэн",
