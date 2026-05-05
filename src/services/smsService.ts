@@ -111,6 +111,11 @@ export async function sendContactSubmissionSMS(
       message = message.replace(new RegExp(`{${key}}`, "g"), value);
     });
 
+    if (!MESSAGEPRO_CONFIG.apiKey) {
+      console.warn("SMS sending skipped: MESSAGEPRO_API_KEY is not set.");
+      return { success: false, results: [], error: "SMS credentials not configured" };
+    }
+
     if (!message || !config.adminPhoneNumbers || config.adminPhoneNumbers.length === 0) {
       return { success: true, results: [] };
     }
