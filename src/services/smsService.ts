@@ -102,7 +102,7 @@ export async function sendContactSubmissionSMS(
 
 
     // Get template and replace placeholders (defaulting to mn for admin alerts)
-    let message = "Tanid shine sanal irlee.";
+    let message = "Bukhbat website's sanal irlee.";
     Object.entries(placeholders).forEach(([key, value]) => {
       message = message.replace(new RegExp(`{${key}}`, "g"), value);
     });
