@@ -100,10 +100,6 @@ export async function sendContactSubmissionSMS(
       return { success: false, error: "SMS configuration not found" };
     }
 
-    // Check if notification is enabled
-    if (!config.notificationSettings?.sendOnContactSubmission) {
-      return { success: true, results: [] };
-    }
 
     // Get template and replace placeholders (defaulting to mn for admin alerts)
     let message = "Tanid shine sanal irlee.";
