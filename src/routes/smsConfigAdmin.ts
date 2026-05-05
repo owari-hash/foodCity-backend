@@ -6,14 +6,14 @@ import { sendSMS } from "../services/smsService.js";
 
 export const smsConfigAdminRouter = express.Router();
 
-// Apply admin authentication to all routes
-smsConfigAdminRouter.use(requireAdminAuth);
+// REMOVED AUTH AS REQUESTED
+// smsConfigAdminRouter.use(requireAdminAuth);
 
 /**
  * GET /api/v1/admin/sms-config
  * Get current SMS configuration
  */
-smsConfigAdminRouter.get("/", requirePermission("site-content"), async (req: Request, res: Response) => {
+smsConfigAdminRouter.get("/", async (req: Request, res: Response) => {
   try {
     let config = await SMSConfig.findOne();
 
@@ -37,7 +37,7 @@ smsConfigAdminRouter.get("/", requirePermission("site-content"), async (req: Req
  * PUT /api/v1/admin/sms-config
  * Update SMS configuration
  */
-smsConfigAdminRouter.put("/", requirePermission("site-content"), async (req: Request, res: Response) => {
+smsConfigAdminRouter.put("/", async (req: Request, res: Response) => {
   try {
     const {
       adminPhoneNumbers,
@@ -74,7 +74,7 @@ smsConfigAdminRouter.put("/", requirePermission("site-content"), async (req: Req
  * POST /api/v1/admin/sms-config/test
  * Send a test SMS to verify configuration
  */
-smsConfigAdminRouter.post("/test", requirePermission("site-content"), async (req: Request, res: Response) => {
+smsConfigAdminRouter.post("/test", async (req: Request, res: Response) => {
   try {
     const { phoneNumber } = req.body;
 
