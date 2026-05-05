@@ -105,8 +105,8 @@ export async function sendContactSubmissionSMS(
       return { success: true, results: [] };
     }
 
-    // Get template and replace placeholders
-    let message = config.templates?.contactSubmission || "";
+    // Get template and replace placeholders (defaulting to mn for admin alerts)
+    let message = "Tanid shine sanal irlee.";
     Object.entries(placeholders).forEach(([key, value]) => {
       message = message.replace(new RegExp(`{${key}}`, "g"), value);
     });

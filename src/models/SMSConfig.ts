@@ -15,16 +15,7 @@ const smsConfigSchema = new mongoose.Schema(
         default: true,
       },
     },
-
-    // Message templates
-    templates: {
-      contactSubmission: {
-        type: String,
-        default:
-          "New collaboration request from {name}. Phone: {phone}, Email: {email}. Check admin panel for details.",
-      },
-    },
-
+  
     // Admin who last updated this config
     updatedBy: String,
   },
