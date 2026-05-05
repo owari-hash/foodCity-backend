@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 import { ContactSubmission } from "../models/ContactSubmission.js";
-import { SMSConfig } from "../models/SMSConfig.js";
-import { sendCollaborationRequestSMS } from "../services/smsService.js";
+import { sendContactSubmissionSMS } from "../services/smsService.js";
 
 export const contactPublicRouter = express.Router();
 
@@ -46,26 +45,12 @@ contactPublicRouter.post("/submit", async (req: Request, res: Response) => {
     await submission.save();
 
     // Send SMS notifications to admins using configured settings
-    const smsConfig = await SMSConfig.findOne();
-    if (
-      smsConfig &&
-      smsConfig.notificationSettings?.sendOnContactSubmission &&
-      smsConfig.adminPhoneNumbers.length > 0
-    ) {
-      await sendCollaborationRequestSMS(
-        name,
-        phone,
-        email,
-        smsConfig.adminPhoneNumbers
-      );
-
-      // Update SMS stats
-      if (smsConfig.stats) {
-        smsConfig.stats.totalSent += smsConfig.adminPhoneNumbers.length;
-        smsConfig.stats.lastSentAt = new Date();
-        await smsConfig.save();
-      }
-    }
+    await sendContactSubmissionSMS({
+      name,
+      phone,
+      email,
+      subject,
+    });
 
     return res.status(201).json({
       success: true,

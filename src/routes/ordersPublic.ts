@@ -39,6 +39,7 @@ ordersPublicRouter.post("/", async (req, res, next) => {
       totalAmount,
       notes,
     });
+
     res.status(201).json({ data: serializeDocument(order) });
   } catch (e) {
     next(e);

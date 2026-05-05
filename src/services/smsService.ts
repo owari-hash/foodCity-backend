@@ -1,18 +1,19 @@
 /**
  * SMS Service using MessagePro API (messagepro.mn)
- * API credentials are hardcoded
- * Admin can configure recipient phone numbers via admin panel
+ * API credentials are retrieved from environment variables
  */
+
+import { SMSConfig } from "../models/SMSConfig.js";
 
 interface MessageProConfig {
   apiKey: string;
   senderId: string;
 }
 
-// Hardcoded MessagePro API credentials
+// MessagePro API credentials from environment
 const MESSAGEPRO_CONFIG: MessageProConfig = {
-  apiKey: "aa8e588459fdd9b7ac0b809fc29cfae3",
-  senderId: "72002002",
+  apiKey: process.env.MESSAGEPRO_API_KEY || "aa8e588459fdd9b7ac0b809fc29cfae3",
+  senderId: process.env.MESSAGEPRO_SENDER_ID || "72002002",
 };
 
 export async function sendSMS(
@@ -87,39 +88,50 @@ async function sendViaMessagePro(
   }
 }
 
-export async function sendCollaborationRequestSMS(
-  submitterName: string,
-  submitterPhone: string,
-  submitterEmail: string,
-  adminPhoneNumbers: string[]
-): Promise<{ success: boolean; results: Array<{ phone: string; success: boolean; messageId?: string }> }> {
-  const message = `New collaboration request from ${submitterName}. Phone: ${submitterPhone}, Email: ${submitterEmail}. Check admin panel for details.`;
-
-  const results = await Promise.all(
-    adminPhoneNumbers.map(async (phone) => {
-      const result = await sendSMS(phone, message);
-      return {
-        phone,
-        success: result.success,
-        messageId: result.messageId,
-      };
-    })
-  );
-
-  const allSuccess = results.every((r) => r.success);
-  return { success: allSuccess, results };
-}
-
 /**
- * Send SMS using admin-configured settings
- * This function retrieves SMS configuration from the database
+ * Send SMS using admin-configured settings for Contact Submission
  */
-export async function sendSMSWithAdminConfig(
-  phoneNumber: string,
-  message: string,
-  adminConfigId?: string
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  // TODO: Fetch admin SMS config from database if adminConfigId is provided
-  // For now, use environment variables
-  return sendSMS(phoneNumber, message);
+export async function sendContactSubmissionSMS(
+  placeholders: Record<string, string>
+): Promise<{ success: boolean; results?: Array<{ phone: string; success: boolean }>; error?: string }> {
+  try {
+    const config = await SMSConfig.findOne();
+    if (!config) {
+      return { success: false, error: "SMS configuration not found" };
+    }
+
+    // Check if notification is enabled
+    if (!config.notificationSettings?.sendOnContactSubmission) {
+      return { success: true, results: [] };
+    }
+
+    // Get template and replace placeholders
+    let message = config.templates?.contactSubmission || "";
+    Object.entries(placeholders).forEach(([key, value]) => {
+      message = message.replace(new RegExp(`{${key}}`, "g"), value);
+    });
+
+    if (!message || !config.adminPhoneNumbers || config.adminPhoneNumbers.length === 0) {
+      return { success: true, results: [] };
+    }
+
+    // Send to all admin phone numbers
+    const results = await Promise.all(
+      config.adminPhoneNumbers.map(async (phone) => {
+        const result = await sendSMS(phone, message);
+        return {
+          phone,
+          success: result.success,
+        };
+      })
+    );
+
+    return { success: results.some(r => r.success), results };
+  } catch (error) {
+    console.error("Error sending admin SMS notification:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send notification",
+    };
+  }
 }
