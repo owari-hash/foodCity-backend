@@ -4,12 +4,12 @@ const contactSubmissionSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     email: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       lowercase: true,
     },
@@ -20,7 +20,7 @@ const contactSubmissionSchema = new mongoose.Schema(
     },
     subject: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     message: {

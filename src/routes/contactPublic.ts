@@ -13,16 +13,18 @@ contactPublicRouter.post("/submit", async (req: Request, res: Response) => {
     const { name, email, phone, subject, message } = req.body;
 
     // Validation
-    if (!name || !email || !phone || !subject || !message) {
+    if (!phone || !message) {
       return res.status(400).json({
-        error: "Missing required fields: name, email, phone, subject, message",
+        error: "Missing required fields: phone, message",
       });
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Invalid email format" });
+    // Email validation (only if provided)
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
     }
 
     // Phone validation (basic)
@@ -33,10 +35,10 @@ contactPublicRouter.post("/submit", async (req: Request, res: Response) => {
 
     // Create submission record
     const submission = new ContactSubmission({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
+      name: name?.trim(),
+      email: email?.trim().toLowerCase(),
       phone: phone.trim(),
-      subject: subject.trim(),
+      subject: subject?.trim(),
       message: message.trim(),
       ipAddress: req.ip,
       userAgent: req.get("user-agent"),
