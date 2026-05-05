@@ -8,13 +8,6 @@ const smsConfigSchema = new mongoose.Schema(
       default: [],
     },
 
-    // SMS notification settings
-    notificationSettings: {
-      sendOnContactSubmission: {
-        type: Boolean,
-        default: true,
-      },
-    },
   
     // Admin who last updated this config
     updatedBy: String,

@@ -41,8 +41,6 @@ smsConfigAdminRouter.put("/", requirePermission("site-content"), async (req: Req
   try {
     const {
       adminPhoneNumbers,
-      notificationSettings,
-      templates,
     } = req.body;
 
     let config = await SMSConfig.findOne();
@@ -52,10 +50,10 @@ smsConfigAdminRouter.put("/", requirePermission("site-content"), async (req: Req
     }
 
     // Update fields
-    if (adminPhoneNumbers !== undefined)
+    if (adminPhoneNumbers !== undefined) {
       config.adminPhoneNumbers = adminPhoneNumbers;
-    if (notificationSettings !== undefined)
-      config.notificationSettings = notificationSettings;
+      config.markModified("adminPhoneNumbers");
+    }
 
     config.updatedBy = req.admin?.displayName || req.body.updatedBy || "admin";
 
