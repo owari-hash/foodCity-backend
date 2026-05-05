@@ -56,7 +56,6 @@ smsConfigAdminRouter.put("/", requirePermission("site-content"), async (req: Req
       config.adminPhoneNumbers = adminPhoneNumbers;
     if (notificationSettings !== undefined)
       config.notificationSettings = notificationSettings;
-    if (templates !== undefined) config.templates = templates;
 
     config.updatedBy = req.admin?.displayName || req.body.updatedBy || "admin";
 
