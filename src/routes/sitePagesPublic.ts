@@ -13,7 +13,23 @@ sitePagesPublicRouter.get("/drop-index", async (req, res) => {
   }
 });
 
+sitePagesPublicRouter.get("/", async (req, res, next) => {
+  try {
+    const lang = (req.query.lang as string) || "mn";
+    const docs = await SitePage.find({ language: lang }).select("pageId sections.hidden").lean();
+    res.json({
+      data: docs.map(d => ({
+        pageId: d.pageId,
+        hidden: !!(d.sections as any)?.hidden
+      }))
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 sitePagesPublicRouter.get("/:pageId", async (req, res, next) => {
+
   try {
     const { pageId } = req.params;
     const lang = (req.query.lang as string) || "mn";
