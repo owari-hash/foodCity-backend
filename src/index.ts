@@ -11,6 +11,8 @@ import { salesAdsPublicRouter } from "./routes/salesAdsPublic.js";
 import { jobsPublicRouter } from "./routes/jobsPublic.js";
 import { chatPublicRouter } from "./routes/chatPublic.js";
 import { sitePagesPublicRouter } from "./routes/sitePagesPublic.js";
+import { contactPublicRouter } from "./routes/contactPublic.js";
+import { smsConfigAdminRouter } from "./routes/smsConfigAdmin.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFoundHandler } from "./middleware/notFoundHandler.js";
 import { initSocket } from "./socket.js";
@@ -52,6 +54,8 @@ app.use("/api/v1/sales-ads", salesAdsPublicRouter);
 app.use("/api/v1/jobs", jobsPublicRouter);
 app.use("/api/v1/chat", chatPublicRouter);
 app.use("/api/v1/site-pages", sitePagesPublicRouter);
+app.use("/api/v1/contact", contactPublicRouter);
+app.use("/api/v1/admin/sms-config", smsConfigAdminRouter);
 app.use("/api/v1/admin", adminRouter);
 
 /**
@@ -64,6 +68,8 @@ app.use("/v1/sales-ads", salesAdsPublicRouter);
 app.use("/v1/jobs", jobsPublicRouter);
 app.use("/v1/chat", chatPublicRouter);
 app.use("/v1/site-pages", sitePagesPublicRouter);
+app.use("/v1/contact", contactPublicRouter);
+app.use("/v1/admin/sms-config", smsConfigAdminRouter);
 app.use("/v1/admin", adminRouter);
 
 /**
@@ -75,6 +81,8 @@ app.use("/sales-ads", salesAdsPublicRouter);
 app.use("/jobs", jobsPublicRouter);
 app.use("/chat", chatPublicRouter);
 app.use("/site-pages", sitePagesPublicRouter);
+app.use("/contact", contactPublicRouter);
+app.use("/admin/sms-config", smsConfigAdminRouter);
 app.use("/admin", adminRouter);
 app.use("/", healthRouter);
 
