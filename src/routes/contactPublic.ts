@@ -49,8 +49,7 @@ contactPublicRouter.post("/submit", async (req: Request, res: Response) => {
     const smsConfig = await SMSConfig.findOne();
     if (
       smsConfig &&
-      smsConfig.enabled &&
-      smsConfig.notificationSettings.sendOnContactSubmission &&
+      smsConfig.notificationSettings?.sendOnContactSubmission &&
       smsConfig.adminPhoneNumbers.length > 0
     ) {
       await sendCollaborationRequestSMS(
@@ -61,9 +60,11 @@ contactPublicRouter.post("/submit", async (req: Request, res: Response) => {
       );
 
       // Update SMS stats
-      smsConfig.stats.totalSent += smsConfig.adminPhoneNumbers.length;
-      smsConfig.stats.lastSentAt = new Date();
-      await smsConfig.save();
+      if (smsConfig.stats) {
+        smsConfig.stats.totalSent += smsConfig.adminPhoneNumbers.length;
+        smsConfig.stats.lastSentAt = new Date();
+        await smsConfig.save();
+      }
     }
 
     return res.status(201).json({
