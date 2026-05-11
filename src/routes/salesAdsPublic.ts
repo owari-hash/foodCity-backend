@@ -23,6 +23,7 @@ salesAdsPublicRouter.get("/", async (req, res, next) => {
         title: langContent.title ?? "",
         summary: langContent.summary ?? "",
         body: langContent.body ?? "",
+        badge: langContent.badge ?? "",
         imageUrl: base.imageUrl,
         externalUrl: base.externalUrl,
         active: base.active,

@@ -5,6 +5,7 @@ const LangContentSchema = new Schema(
     title: { type: String, default: "" },
     summary: { type: String, default: "" },
     body: { type: String, default: "" },
+    badge: { type: String, default: "" },
   },
   { _id: false },
 );
