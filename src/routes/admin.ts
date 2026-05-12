@@ -295,6 +295,18 @@ adminRouter.delete("/jobs/:id", requirePermission("jobs"), async (req, res, next
   }
 });
 
+/* ——— Job Applications ——— */
+adminRouter.get("/job-applications", requirePermission("jobs"), async (_req, res, next) => {
+  try {
+    const apps = await mongoose.model("JobApplication").find().sort({ createdAt: -1 }).limit(500).lean();
+    res.json({
+      data: apps.map((a) => serializeLean(a as Record<string, unknown>)),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 /* ——— Chat (admin) ——— */
 adminRouter.get("/conversations", requirePermission("chat"), async (_req, res, next) => {
   try {
