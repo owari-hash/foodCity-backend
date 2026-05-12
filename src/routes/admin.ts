@@ -26,6 +26,99 @@ export const adminRouter = Router();
 adminRouter.post("/auth/login", adminLoginHandler);
 adminRouter.use(requireAdminAuth);
 
+adminRouter.get("/me", (req, res) => {
+  res.json({ data: req.admin });
+});
+
+adminRouter.patch("/me", async (req, res, next) => {
+  try {
+    const a = req.admin!;
+    const { username, displayName, password } = req.body as {
+      username?: string;
+      displayName?: string;
+      password?: string;
+    };
+
+    const update: Record<string, unknown> = {};
+
+    if (username !== undefined) {
+      const u = username.trim().toLowerCase();
+      if (u.length < 2) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "Username too short" },
+        });
+        return;
+      }
+      // Check if username already exists for another user
+      if (u !== a.username) {
+        const existing = await AdminUser.findOne({ username: u });
+        if (existing) {
+          res.status(409).json({
+            error: { code: "DUPLICATE", message: "Username already exists" },
+          });
+          return;
+        }
+        update.username = u;
+      }
+    }
+
+    if (displayName !== undefined) {
+      const d = displayName.trim();
+      if (!d) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "Display name cannot be empty" },
+        });
+        return;
+      }
+      update.displayName = d;
+    }
+
+    if (password !== undefined) {
+      if (password.length < 6) {
+        res.status(400).json({
+          error: { code: "VALIDATION_ERROR", message: "Password too short" },
+        });
+        return;
+      }
+      update.passwordHash = await bcrypt.hash(password, 10);
+    }
+
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "No fields to update" } });
+      return;
+    }
+
+    const updated = await AdminUser.findByIdAndUpdate(a.sub === "env" || a.sub === "legacy" ? null : a.sub, update, { new: true })
+      .select("-passwordHash")
+      .lean();
+
+    if (!updated && a.sub !== "env" && a.sub !== "legacy") {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Admin user not found" } });
+      return;
+    }
+
+    // Note: If sub is "env" or "legacy", they can't really update their DB record because it might not exist or they are hardcoded.
+    // However, the system seems to have AdminUser model, so most users should be in DB.
+    // The "env" user is from environment variables and doesn't exist in DB.
+    if (a.sub === "env" || a.sub === "legacy") {
+      res.status(403).json({
+        error: { code: "FORBIDDEN", message: "Cannot update hardcoded admin user via API" },
+      });
+      return;
+    }
+
+    res.json({
+      data: {
+        username: updated!.username,
+        displayName: updated!.displayName,
+        permissions: updated!.permissions,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 
 
 function isValidPermissionList(perms: unknown): perms is string[] {
