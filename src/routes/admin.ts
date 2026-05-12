@@ -9,6 +9,7 @@ import { Order } from "../models/Order.js";
 import { SalesAd } from "../models/SalesAd.js";
 import { SitePage } from "../models/SitePage.js";
 import { AdminUser } from "../models/AdminUser.js";
+import { JobApplication } from "../models/JobApplication.js";
 import { postAgentMessage } from "../services/chatService.js";
 import { serializeDocument, serializeLean } from "../util/serialize.js";
 import { invalidateChatbotSiteCache } from "../services/chatbotFromSite.js";
@@ -391,7 +392,7 @@ adminRouter.delete("/jobs/:id", requirePermission("jobs"), async (req, res, next
 /* ——— Job Applications ——— */
 adminRouter.get("/job-applications", requirePermission("jobs"), async (_req, res, next) => {
   try {
-    const apps = await mongoose.model("JobApplication").find().sort({ createdAt: -1 }).limit(500).lean();
+    const apps = await JobApplication.find().sort({ createdAt: -1 }).limit(500).lean();
     res.json({
       data: apps.map((a) => serializeLean(a as Record<string, unknown>)),
     });
