@@ -27,10 +27,10 @@ contactPublicRouter.post("/submit", async (req: Request, res: Response) => {
       }
     }
 
-    // Phone validation (basic)
-    const phoneRegex = /^\+?[0-9\s\-()]{7,}$/;
+    // Phone validation (8 digits)
+    const phoneRegex = /^[0-9]{8}$/;
     if (!phoneRegex.test(phone)) {
-      return res.status(400).json({ error: "Invalid phone format" });
+      return res.status(400).json({ error: "Phone number must be exactly 8 digits" });
     }
 
     // Create submission record

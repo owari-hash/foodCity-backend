@@ -11,6 +11,7 @@ type MulterFile = Express.Multer.File;
 
 const IMAGE_EXTS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]);
 const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".ogg", ".avi"]);
+const DOC_EXTS = new Set([".pdf", ".doc", ".docx"]);
 
 /** Default 200 MiB for images; override with UPLOAD_MAX_MB in .env */
 const IMAGE_MAX_BYTES =
@@ -36,7 +37,7 @@ const storage = multer.diskStorage({
     cb: (error: Error | null, filename: string) => void,
   ) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const safeExt = IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext) ? ext : ".jpg";
+    const safeExt = IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext) || DOC_EXTS.has(ext) ? ext : ".jpg";
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 11)}${safeExt}`);
   },
 });
@@ -48,9 +49,14 @@ export const upload = multer({
     const ext = path.extname(file.originalname).toLowerCase();
     const isImage = file.mimetype.startsWith("image/") || IMAGE_EXTS.has(ext);
     const isVideo = file.mimetype.startsWith("video/") || VIDEO_EXTS.has(ext);
+    const isDoc =
+      file.mimetype === "application/pdf" ||
+      file.mimetype === "application/msword" ||
+      file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      DOC_EXTS.has(ext);
 
-    if (!isImage && !isVideo) {
-      cb(new Error("Only image or video files are allowed"));
+    if (!isImage && !isVideo && !isDoc) {
+      cb(new Error("Only image, video, or document files (PDF/Word) are allowed"));
       return;
     }
 

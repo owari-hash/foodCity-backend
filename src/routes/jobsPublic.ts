@@ -66,6 +66,10 @@ jobsPublicRouter.post("/apply", async (req, res, next) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    if (!/^[0-9]{8}$/.test(phone)) {
+      return res.status(400).json({ error: "Phone number must be exactly 8 digits" });
+    }
+
     const app = new JobApplication({
       jobId,
       jobTitle,
